@@ -1,0 +1,32 @@
+name:                metagraph-dot
+version:             0.1.0.0
+synopsis:            Generation DOT file for metagraphs
+-- description:
+homepage:            https://github.com/teaspot-studio/metagraph-dot#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Anton Gushcha
+maintainer:          ncrashed@gmail.com
+copyright:           2017 Anton Gushcha
+category:            Data
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+library
+  hs-source-dirs:      src
+  exposed-modules:
+    Data.Metagraph.Dot
+  default-language:    Haskell2010
+  build-depends:
+      base      >= 4.7 && < 5
+    , metagraph >= 0.1 && < 0.2
+
+executable metagraph-dot
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  build-depends:
+      base          >= 4.7 && < 5
+    , metagraph     >= 0.1 && < 0.2
+    , metagraph-dot 
