@@ -18,18 +18,22 @@ dotMetagraphText :: GraphID -- ^ Name of graphviz graph
   -> MetaGraph Text Text -- ^ Metagraph to convert
   -> DotGraph Text
 dotMetagraphText gid = dotMetagraph gid
+  (\MetaNode{..} -> _nodePayload)
+  (\MetaEdge{..} -> _edgePayload)
   (\MetaNode{..} -> (_nodePayload, Str _nodePayload, []))
-  (\MetaEdge{..} -> (Str _edgePayload, []))
+  (\MetaEdge{..} -> (Str _edgePayload, [Label $ StrLabel _edgePayload]))
   ""
 
 -- | Convert metagraph into Graphviz representation
 dotMetagraph :: forall e n n' . GraphID -- ^ Name of graphviz graph
+  -> (MetaNode e n -> Text) -- ^ Make label for metanode
+  -> (MetaEdge e n -> Text) -- ^ Make label for metaedge
   -> (MetaNode e n -> (n', GraphID, Attributes)) -- ^ How to render node
   -> (MetaEdge e n -> (GraphID, Attributes)) -- ^ How to render edges
   -> n' -- ^ Dummy node for edges between meta edges
   -> MetaGraph e n -- ^ Metagraph to convert
   -> DotGraph n' -- ^ Resulting graphviz graph
-dotMetagraph gid renderNode renderEdge dummy m = digraph gid $ dotMetagraph' m
+dotMetagraph gid mkNodeLabel mkEdgeLabel renderNode renderEdge dummy m = digraph gid $ dotMetagraph' m
   where
   dotMetagraph' :: MetaGraph e n -> Dot n'
   dotMetagraph' MetaGraph{..} = do
@@ -41,7 +45,9 @@ dotMetagraph gid renderNode renderEdge dummy m = digraph gid $ dotMetagraph' m
   dotMetaNode mn@MetaNode{..} = let (n', nid, attrs) = renderNode mn
     in case _nodeGraph of
       Nothing       -> node n' attrs
-      Just subgraph -> cluster nid $ dotMetagraph' subgraph
+      Just subgraph -> cluster nid $ do
+        graphAttrs [Label $ StrLabel $ mkNodeLabel mn]
+        dotMetagraph' subgraph
 
   dotMetaEdge :: (MetaEdge e n -> (GraphID, Attributes))
     -> Attributes -> MetaEdge e n -> Dot n'
@@ -57,7 +63,9 @@ dotMetagraph gid renderNode renderEdge dummy m = digraph gid $ dotMetagraph' m
     case _edgeGraph of
       Nothing -> edge f t (addAttrs ++ attrs ++ fatrs ++ tatrs)
       Just subgraph -> do
-        cluster eid $ dotMetagraph' subgraph
+        cluster eid $ do
+          graphAttrs [Label $ StrLabel $ mkEdgeLabel me]
+          dotMetagraph' subgraph
         edge f dummy (addAttrs ++ attrs ++ fatrs ++ [LHead . pack . show $ eid])
         edge dummy t (addAttrs ++ attrs ++ tatrs ++ [LTail . pack . show $ eid])
 
