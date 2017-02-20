@@ -12,6 +12,7 @@ import qualified Data.IntMap.Strict                as M
 import           Data.Metagraph
 import           Data.Metagraph.Internal.Types
 import           Data.Text.Lazy                    (Text, pack)
+import Data.Monoid
 
 -- | Simplified 'dotMetagraph' for text metagraph
 dotMetagraphText :: GraphID -- ^ Name of graphviz graph
@@ -22,7 +23,7 @@ dotMetagraphText gid = dotMetagraph gid
   (\MetaEdge{..} -> _edgePayload)
   (\MetaNode{..} -> (_nodePayload, Str _nodePayload, []))
   (\MetaEdge{..} -> (Str _edgePayload, [Label $ StrLabel _edgePayload]))
-  ""
+  (pack . show)
 
 -- | Convert metagraph into Graphviz representation
 dotMetagraph :: forall e n n' . GraphID -- ^ Name of graphviz graph
@@ -30,14 +31,14 @@ dotMetagraph :: forall e n n' . GraphID -- ^ Name of graphviz graph
   -> (MetaEdge e n -> Text) -- ^ Make label for metaedge
   -> (MetaNode e n -> (n', GraphID, Attributes)) -- ^ How to render node
   -> (MetaEdge e n -> (GraphID, Attributes)) -- ^ How to render edges
-  -> n' -- ^ Dummy node for edges between meta edges
+  -> (MetaGraphId -> n') -- ^ Render of metagraph top level (should be uniq per subgraph), invisible
   -> MetaGraph e n -- ^ Metagraph to convert
   -> DotGraph n' -- ^ Resulting graphviz graph
-dotMetagraph gid mkNodeLabel mkEdgeLabel renderNode renderEdge dummy m = digraph gid $ dotMetagraph' m
+dotMetagraph gid mkNodeLabel mkEdgeLabel renderNode renderEdge subgraphNode m = digraph gid $ dotMetagraph' m
   where
   dotMetagraph' :: MetaGraph e n -> Dot n'
   dotMetagraph' MetaGraph{..} = do
-    node dummy [Style [SItem Invisible []]]
+    node (subgraphNode _metagraphId) [Style [SItem Invisible []], FixedSize SetNodeSize, Width 0.1]
     mapM_ dotMetaNode  $ M.elems _metagraphNodes
     mapM_ dotMetaEdge' $ M.elems _metagraphEdges
 
@@ -57,7 +58,7 @@ dotMetagraph gid mkNodeLabel mkEdgeLabel renderNode renderEdge dummy m = digraph
           (e', eid, _) = renderNode mn
           in case _nodeGraph mn of
             Nothing -> (e', [])
-            Just _  -> (dummy, [endpos . pack . show $ eid])
+            Just g  -> (subgraphNode $ _metagraphId g, [endpos . pack . show $ eid])
         (f, fatrs) = makeEndpoint _edgeFrom LTail
         (t, tatrs) = makeEndpoint _edgeTo LHead
     case _edgeGraph of
@@ -66,6 +67,7 @@ dotMetagraph gid mkNodeLabel mkEdgeLabel renderNode renderEdge dummy m = digraph
         cluster eid $ do
           graphAttrs [Label $ StrLabel $ mkEdgeLabel me]
           dotMetagraph' subgraph
+        let dummy = subgraphNode $ _metagraphId subgraph
         edge f dummy (addAttrs ++ attrs ++ fatrs ++ [LHead . pack . show $ eid])
         edge dummy t (addAttrs ++ attrs ++ tatrs ++ [LTail . pack . show $ eid])
 

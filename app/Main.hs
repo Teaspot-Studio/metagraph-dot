@@ -75,29 +75,29 @@ testGraph3 = buildMetaGraph $ do
 -- | Metagraph of relations in the text:
 --
 -- @
--- An apple is a vegetable, that has a spherical shape and one of the following
+-- An apple is a fruit, that has a spherical shape and one of the following
 -- colors: green, yellow and red, but not a blue one.
 -- @
 appleGraph :: MetaGraph T.Text T.Text
 appleGraph = buildMetaGraph $ do
   g <- newMetaGraph
   apple <- newNode g Nothing "Apple"
-  vegetable <- newNode g Nothing "Vegetable"
-  _ <- newEdge g Directed apple vegetable Nothing "is"
+  fruit <- newNode g Nothing "Fruit"
+  _ <- newEdge g Directed apple fruit Nothing "is"
   shape <- newNode g Nothing "Shape"
   sg <- newMetaGraph
-  sphere <- newNode g Nothing "Sphere"
+  sphere <- newNode sg Nothing "Sphere"
   _ <- newEdge g Directed apple shape (Just sg) "has like"
   cg <- newMetaGraph
   green <- newNode cg Nothing "Green"
   yellow <- newNode cg Nothing "Yellow"
   red <- newNode cg Nothing "Red"
   blue <- newNode cg Nothing "Blue"
-  color <- newNode g (Just cg) "Color"
   acg <- newMetaGraph
   addNode acg green
   addNode acg yellow
   addNode acg red
-  appleColor <- newNode g (Just acg) "Apple color"
+  appleColor <- newNode cg (Just acg) "Apple color"
+  color <- newNode g (Just cg) "Color"
   _ <- newEdge g Directed apple appleColor Nothing "has"
   return g
