@@ -17,7 +17,8 @@ main = do
   renderMetaGraph testGraph1 "graph1"
   renderMetaGraph testGraph2 "graph2"
   renderMetaGraph testGraph3 "graph3"
-  
+  renderMetaGraph appleGraph "apple"
+
 -- | Render a ps to given path
 renderMetaGraph :: MetaGraph T.Text T.Text -> P.FilePath -> IO ()
 renderMetaGraph gr path = do
@@ -69,4 +70,34 @@ testGraph3 = buildMetaGraph $ do
   a  <- newNode g Nothing "A"
   b  <- newNode g Nothing "B"
   _ <- newEdge g Directed a b (Just gE) "E"
+  return g
+
+-- | Metagraph of relations in the text:
+--
+-- @
+-- An apple is a vegetable, that has a spherical shape and one of the following
+-- colors: green, yellow and red, but not a blue one.
+-- @
+appleGraph :: MetaGraph T.Text T.Text
+appleGraph = buildMetaGraph $ do
+  g <- newMetaGraph
+  apple <- newNode g Nothing "Apple"
+  vegetable <- newNode g Nothing "Vegetable"
+  _ <- newEdge g Directed apple vegetable Nothing "is"
+  shape <- newNode g Nothing "Shape"
+  sg <- newMetaGraph
+  sphere <- newNode g Nothing "Sphere"
+  _ <- newEdge g Directed apple shape (Just sg) "has like"
+  cg <- newMetaGraph
+  green <- newNode cg Nothing "Green"
+  yellow <- newNode cg Nothing "Yellow"
+  red <- newNode cg Nothing "Red"
+  blue <- newNode cg Nothing "Blue"
+  color <- newNode g (Just cg) "Color"
+  acg <- newMetaGraph
+  addNode acg green
+  addNode acg yellow
+  addNode acg red
+  appleColor <- newNode g (Just acg) "Apple color"
+  _ <- newEdge g Directed apple appleColor Nothing "has"
   return g
